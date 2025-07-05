@@ -16,10 +16,10 @@ jobs:
         run: |
           echo "GOAMD64=v3" >> $GITHUB_ENV
           echo "BUILDTIME=$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M')" >> $GITHUB_ENV
-          echo "CHINA_DOMAINS_URL=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_Domain.txt" >> $GITHUB_ENV
+          # echo "CHINA_DOMAINS_URL=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMax/ChinaMax_Domain.txt" >> $GITHUB_ENV
           echo "GOOGLE_DOMAINS_URL=https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/google.china.conf" >> $GITHUB_ENV
           echo "APPLE_DOMAINS_URL=https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/apple.china.conf" >> $GITHUB_ENV
-          # echo "CUSTOM_DIRECT=https://raw.githubusercontent.com/Loyalsoldier/domain-list-custom/release/cn.txt" >> $GITHUB_ENV
+          echo "CUSTOM_DIRECT=https://raw.githubusercontent.com/Loyalsoldier/domain-list-custom/release/cn.txt" >> $GITHUB_ENV
           echo "CUSTOM_PROXY=https://raw.githubusercontent.com/Loyalsoldier/domain-list-custom/release/geolocation-!cn.txt" >> $GITHUB_ENV
           echo "WIN_SPY=https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt" >> $GITHUB_ENV
           echo "WIN_UPDATE=https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/update.txt" >> $GITHUB_ENV
@@ -208,18 +208,6 @@ jobs:
           wget -O geoip-lite.dat https://github.com/xishang0128/geoip/raw/release/geoip.dat
           wget https://github.com/Loyalsoldier/geoip/raw/release/geoip.dat
 
-      - name: Build db and metadb file
-        env:
-          NO_SKIP: true
-        run: |
-          go install -trimpath -ldflags="-s -w -buildid=" github.com/metacubex/geo/cmd/geo@master
-          geo convert site -i v2ray -o sing -f geosite.db ./custom/publish/geosite.dat
-          geo convert site -i v2ray -o sing -f geosite-lite.db ./community/geosite-lite.dat
-          geo convert ip -i v2ray -o sing -f geoip.db ./geoip.dat
-          geo convert ip -i v2ray -o meta -f geoip.metadb ./geoip.dat
-          geo convert ip -i v2ray -o sing -f geoip-lite.db ./geoip-lite.dat
-          geo convert ip -i v2ray -o meta -f geoip-lite.metadb ./geoip-lite.dat
-
       - name: Convert geo to sing-rule-set
         env:
           NO_SKIP: true
@@ -228,56 +216,7 @@ jobs:
           cd convert
           go run ./ geosite -f ../custom/publish/geosite.dat -o ../sing-rule/geo/geosite -t sing-box
           go run ./ geoip -f ../geoip.dat -o ../sing-rule/geo/geoip -t sing-box
-
-      - name: Convert geo-lite to sing-rule-set
-        env:
-          NO_SKIP: true
-        run: |
-          mkdir -p sing-rule/geo-lite/geosite && mkdir -p sing-rule/geo-lite/geoip
-          cd convert
-          go run ./ geosite -f ../community/geosite-lite.dat -o ../sing-rule/geo-lite/geosite -t sing-box
-          go run ./ geoip -f ../geoip-lite.dat -o ../sing-rule/geo-lite/geoip -t sing-box
-
-      - name: Convert geo to meta-rule-set
-        env:
-          NO_SKIP: true
-        run: |
-          mkdir -p meta-rule/geo/geosite && mkdir -p meta-rule/geo/geoip
-          cd convert
-          go run ./ geosite -f ../custom/publish/geosite.dat -o ../meta-rule/geo/geosite
-          go run ./ geoip -f ../geoip.dat -o ../meta-rule/geo/geoip
-
-      - name: Convert geo-lite to meta-rule-set
-        env:
-          NO_SKIP: true
-        run: |
-          mkdir -p meta-rule/geo-lite/geosite && mkdir -p meta-rule/geo-lite/geoip
-          cd convert
-          go run ./ geosite -f ../community/geosite-lite.dat -o ../meta-rule/geo-lite/geosite
-          go run ./ geoip -f ../geoip-lite.dat -o ../meta-rule/geo-lite/geoip
-
-      - name: Convert asn
-        env:
-          NO_SKIP: true
-        run: |
-          mkdir -p meta-rule/asn && mkdir -p sing-rule/asn
-          cd convert
-          wget https://raw.githubusercontent.com/xishang0128/geoip/release/GeoLite2-ASN.mmdb
-          go run ./ asn -o ../meta-rule/asn
-          go run ./ asn -o ../sing-rule/asn -t sing-box
-
-      - name: Convert bm7-rule-set to sing-rule-set
-        env:
-          NO_SKIP: true
-        run: |
-          mkdir -p ./sing-rule/bm7
-          cp ./resouces/bm7.sh ./sing-rule/bm7/
-          cd ./sing-rule/bm7
-          wget https://github.com/SagerNet/sing-box/releases/download/v1.8.0-alpha.1/sing-box-1.8.0-alpha.1-linux-amd64.tar.gz -O sing-box.tar.gz && tar zxvf sing-box.tar.gz && mv sing-box-1.8.0-alpha.1-linux-amd64/sing-box ./ && rm -r sing-box-1.8.0-alpha.1-linux-amd64
-          ls
-          chmod 755 bm7.sh && ./bm7.sh
-          rm -r bm7.sh sing-box* rule
-
+          
       - name: Move and zip files
         run: |
           mkdir -p ./publish/
@@ -309,24 +248,6 @@ jobs:
           sha256sum geoip-lite.metadb > geoip-lite.metadb.sha256sum
           sha256sum GeoLite2-ASN.mmdb > GeoLite2-ASN.mmdb.sha256sum
 
-      - name: Delete current release assets
-        uses: andreaswilli/delete-release-assets-action@v3.0.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: latest
-          deleteOnlyFromDrafts: false
-
-      - name: Create and Upload Release
-        id: upload_release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: Release ${{ env.BUILDTIME }}
-          tag: latest
-          file_glob: true
-          overwrite: true
-          file: ./publish/*
-
       - name: Git push assets to "release" branch
         run: |
           cd publish || exit 1
@@ -350,23 +271,3 @@ jobs:
             git commit -m "Released on ${{ env.BUILDTIME }}"
             git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
             git push -f -u origin sing
-
-      - name: Git push assets to "meta-rule" branch
-        run: |
-            cd meta-rule || exit 1
-            git init
-            git config --local user.name "github-actions[bot]"
-            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git checkout -b meta
-            git add .
-            git commit -m "Released on ${{ env.BUILDTIME }}"
-            git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-            git push -f -u origin meta
-
-
-      - name: Purge jsdelivr CDN
-        run: |
-          cd publish || exit 1
-          for file in $(ls); do
-            curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/${file}"
-          done
