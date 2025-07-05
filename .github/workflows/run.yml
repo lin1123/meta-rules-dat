@@ -115,7 +115,7 @@ jobs:
           go run ./ --datapath=../community/data
 
       - name: Get geoip.dat
-        run: wget https://github.com/Loyalsoldier/geoip/raw/release/geoip.dat
+        run: wget https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-asn.dat
 
       - name: Convert geo to sing-rule-set
         run: |
